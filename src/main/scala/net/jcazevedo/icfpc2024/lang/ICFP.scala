@@ -7,17 +7,9 @@ object ICFP {
     def result: java.lang.String
   }
 
-  sealed trait Boolean extends Atom
-
-  object Boolean {
-    case object True extends ICFP.Boolean {
-      override def toString = "T"
-      def result = "true"
-    }
-    case object False extends ICFP.Boolean {
-      override def toString = "F"
-      def result = "false"
-    }
+  case class Boolean(value: scala.Boolean) extends Atom {
+    override def toString = if (value) "T" else "F"
+    def result = value.toString
   }
 
   case class Integer(value: Long) extends ICFP.Atom {
@@ -91,7 +83,7 @@ object ICFP {
       case object Divide extends ICFP.Operator.Binary {
         override def toString = "B/"
       }
-      case object Module extends ICFP.Operator.Binary {
+      case object Modulo extends ICFP.Operator.Binary {
         override def toString = "B%"
       }
       case object IsLessThan extends ICFP.Operator.Binary {

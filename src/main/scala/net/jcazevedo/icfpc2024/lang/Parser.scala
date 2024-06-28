@@ -4,14 +4,11 @@ import fastparse.MultiLineWhitespace._
 import fastparse._
 
 object Parser {
-  private def `true`[$: P]: P[ICFP.Boolean.True.type] =
-    P("T").map(_ => ICFP.Boolean.True)
-
-  private def `false`[$: P]: P[ICFP.Boolean.False.type] =
-    P("F").map(_ => ICFP.Boolean.False)
-
   private def boolean[$: P]: P[ICFP.Boolean] =
-    P(`true` | `false`)
+    P(("T" | "F").!).collect({
+      case "T" => ICFP.Boolean(true)
+      case "F" => ICFP.Boolean(false)
+    })
 
   private def integer[$: P]: P[ICFP.Integer] =
     P("I" ~~ CharsWhile(_ != ' ').!).map(digits => {
@@ -42,7 +39,7 @@ object Parser {
       case "B-" => ICFP.Operator.Binary.Subtract
       case "B*" => ICFP.Operator.Binary.Multiply
       case "B/" => ICFP.Operator.Binary.Divide
-      case "B%" => ICFP.Operator.Binary.Module
+      case "B%" => ICFP.Operator.Binary.Modulo
       case "B<" => ICFP.Operator.Binary.IsLessThan
       case "B>" => ICFP.Operator.Binary.IsGreaterThan
       case "B=" => ICFP.Operator.Binary.IsEqual
