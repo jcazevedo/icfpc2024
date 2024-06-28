@@ -11,16 +11,13 @@ object Parser {
     })
 
   private def integer[$: P]: P[ICFP.Integer] =
-    P("I" ~~ CharsWhile(_ != ' ').!).map(digits => {
-      var ans = 0L
-      digits.foreach(digit => ans = ans * 94 + (digit.toInt - 33))
-      ICFP.Integer(ans)
-    })
+    P("I" ~~ CharsWhile(_ != ' ').!).map(digits => ICFP.Integer(ICFP.Integer.fromBase94(digits)))
 
   private def string[$: P]: P[ICFP.String] =
-    P("S" ~~ CharsWhile(_ != ' ').!).map(str =>
-      ICFP.String(augmentString(str).map(ch => ICFP.String.Order(ch.toInt - 33)).mkString)
-    )
+    P("S" ~~ CharsWhile(_ != ' ').!).map(str => ICFP.String(ICFP.String.fromHuman(str)))
+
+  private def variable[$: P]: P[ICFP.Variable] =
+    P("v" ~~ CharsWhile(_ != ' ').!).map(digits => ICFP.Variable(ICFP.Integer.fromBase94(digits)))
 
   private def unaryOp[$: P]: P[ICFP.Operator.Unary] =
     P(CharsWhile(_ != ' ').!).collect({
@@ -48,6 +45,7 @@ object Parser {
       case "B." => ICFP.Operator.Binary.Concatenate
       case "BT" => ICFP.Operator.Binary.Take
       case "BD" => ICFP.Operator.Binary.Drop
+      case "B$" => ICFP.Operator.Binary.LambdaApplication
     })
 
   private def binary[$: P]: P[ICFP.Expression.Binary] =
@@ -58,8 +56,13 @@ object Parser {
       ICFP.If(condition, whenTrue, whenFalse)
     })
 
+  private def lambda[$: P]: P[ICFP.Lambda] =
+    P("L" ~~ CharsWhile(_ != ' ').! ~ expression).map({ case (variable, expression) =>
+      ICFP.Lambda(ICFP.Integer.fromBase94(variable), expression)
+    })
+
   private def expression[$: P]: P[ICFP] =
-    P(boolean | integer | string | unary | binary | `if`)
+    P(boolean | integer | string | variable | unary | binary | `if` | lambda)
 
   def parse(str: String): ICFP =
     fastparse.parse(str, expression(_)) match {

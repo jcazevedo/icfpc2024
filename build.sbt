@@ -4,7 +4,7 @@ ThisBuild / scalaVersion     := "2.13.14"
 ThisBuild / organization     := "net.jcazevedo"
 ThisBuild / organizationName := "jcazevedo"
 
-lazy val root = (project in file("."))
+lazy val icfpc2024 = (project in file("."))
   .settings(
     name                             := "icfpc2024",
     scalafmtOnCompile                := true,
