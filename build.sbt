@@ -7,6 +7,11 @@ ThisBuild / organizationName := "jcazevedo"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "icfpc2024",
-    libraryDependencies += munit % Test
+    name              := "icfpc2024",
+    scalafmtOnCompile := true,
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+    scalafixOnCompile := true,
+    fork              := true,
+    libraryDependencies ++= Seq(PekkoActor, PekkoHttp, PekkoStream, MUnit % Test)
   )
