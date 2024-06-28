@@ -32,8 +32,7 @@ lazy val root = (project in file("."))
       PureConfigCore,
       PureConfigGeneric,
       PureConfigPekkoHttp,
-      ScalaLogging,
-      MUnit % Test
+      ScalaLogging
     ),
     assembly / mainClass             := Some("net.jcazevedo.icfpc2024.CLI"),
     assembly / assemblyJarName       := name.value + ".jar",
