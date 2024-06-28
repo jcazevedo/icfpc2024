@@ -124,7 +124,7 @@ object ICFP {
     }
   }
 
-  case class If(condition: ICFP, whenTrue: ICFP, whenFalse: ICFP) {
+  case class If(condition: ICFP, whenTrue: ICFP, whenFalse: ICFP) extends Expression {
     override def toString = s"? $condition $whenTrue $whenFalse"
   }
 }

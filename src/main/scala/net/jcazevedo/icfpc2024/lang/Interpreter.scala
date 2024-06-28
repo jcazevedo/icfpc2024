@@ -84,6 +84,15 @@ object Interpreter {
       case ICFP.Expression.Binary(op, lhs, rhs) =>
         binaryOp(op, evaluate(lhs), evaluate(rhs))
 
+      case ICFP.If(condition, whenTrue, whenFalse) =>
+        evaluate(condition) match {
+          case ICFP.Boolean(value) =>
+            if (value) evaluate(whenTrue) else evaluate(whenFalse)
+
+          case other =>
+            throw new IllegalArgumentException(s"$condition doesn't evaluate to a boolean")
+        }
+
       case other =>
         ???
     }

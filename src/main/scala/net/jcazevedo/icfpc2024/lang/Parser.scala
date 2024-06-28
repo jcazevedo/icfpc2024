@@ -53,8 +53,13 @@ object Parser {
   private def binary[$: P]: P[ICFP.Expression.Binary] =
     P(binaryOp ~ expression ~ expression).map({ case (op, lhs, rhs) => ICFP.Expression.Binary(op, lhs, rhs) })
 
+  private def `if`[$: P]: P[ICFP.If] =
+    P("?" ~ expression ~ expression ~ expression).map({ case (condition, whenTrue, whenFalse) =>
+      ICFP.If(condition, whenTrue, whenFalse)
+    })
+
   private def expression[$: P]: P[ICFP] =
-    P(boolean | integer | string | unary | binary)
+    P(boolean | integer | string | unary | binary | `if`)
 
   def parse(str: String): ICFP =
     fastparse.parse(str, expression(_)) match {
