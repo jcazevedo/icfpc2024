@@ -7,7 +7,7 @@ object ICFP {
     def result: java.lang.String
   }
 
-  case class Boolean(value: scala.Boolean) extends Atom {
+  case class Boolean(value: scala.Boolean) extends ICFP.Atom {
     override def toString = if (value) "T" else "F"
     def result = value.toString
   }
