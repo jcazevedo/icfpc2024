@@ -1,0 +1,6 @@
+.bloop
+.metals
+/.bsp/
+requests.http
+target/
+metals.sbt
