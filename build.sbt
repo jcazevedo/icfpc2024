@@ -21,6 +21,7 @@ lazy val root = (project in file("."))
       "-Ywarn-unused:imports"
     ),
     libraryDependencies ++= Seq(
+      FastParse,
       JLine,
       Log4jCore,
       Log4jSlf4jImpl,
@@ -35,7 +36,7 @@ lazy val root = (project in file("."))
       MUnit % Test
     ),
     assembly / mainClass             := Some("net.jcazevedo.icfpc2024.CLI"),
-    assembly / assemblyJarName       := name.value + "-" + version.value + ".jar",
+    assembly / assemblyJarName       := name.value + ".jar",
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
       case "reference.conf"                    => MergeStrategy.concat

@@ -1,6 +1,7 @@
 import sbt._
 
 object Dependencies {
+  lazy val FastParse           = "com.lihaoyi"                %% "fastparse"             % "3.0.2"
   lazy val JLine               = "org.jline"                   % "jline"                 % "3.1.3"
   lazy val Log4jCore           = "org.apache.logging.log4j"    % "log4j-core"            % "2.19.0"
   lazy val Log4jSlf4jImpl      = "org.apache.logging.log4j"    % "log4j-slf4j-impl"      % "2.23.1"
