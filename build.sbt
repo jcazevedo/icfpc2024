@@ -13,12 +13,16 @@ lazy val root = (project in file("."))
     scalafixOnCompile := true,
     fork              := true,
     libraryDependencies ++= Seq(
+      Log4jCore,
+      Log4jSlf4jImpl,
       PekkoActor,
       PekkoHttp,
+      PekkoSlf4j,
       PekkoStream,
       PureConfigCore,
       PureConfigGeneric,
       PureConfigPekkoHttp,
+      ScalaLogging,
       MUnit % Test
     )
   )
