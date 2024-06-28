@@ -1,17 +1,14 @@
 package net.jcazevedo.icfpc2024.api
 
-import java.net.URI
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.pekko.actor.{ActorSystem, Terminated}
+import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.http.scaladsl.marshalling.Marshal
 import org.apache.pekko.http.scaladsl.model.headers.RawHeader
 import org.apache.pekko.http.scaladsl.model.{
   ContentType,
-  ContentTypes,
   HttpCharsets,
   HttpMethods,
   HttpRequest,

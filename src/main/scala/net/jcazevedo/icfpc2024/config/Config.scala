@@ -1,7 +1,5 @@
 package net.jcazevedo.icfpc2024.config
 
-import java.net.URI
-
 import org.apache.pekko.http.scaladsl.model.Uri
 import pureconfig.generic.semiauto.deriveReader
 import pureconfig.module.pekkohttp._

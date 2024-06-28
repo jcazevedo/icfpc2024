@@ -12,6 +12,14 @@ lazy val root = (project in file("."))
     semanticdbVersion                := scalafixSemanticdb.revision,
     scalafixOnCompile                := true,
     fork                             := true,
+    scalacOptions ++= Seq(
+      "-deprecation",
+      "-encoding",
+      "UTF-8",
+      "-Ywarn-dead-code",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-unused:imports"
+    ),
     libraryDependencies ++= Seq(
       JLine,
       Log4jCore,

@@ -8,5 +8,5 @@ object Strings {
     alien.map(ch => Order(ch.toInt - 33)).mkString
 
   def fromHuman(human: String): String =
-    human.map(ch => (Order.indexOf(ch) + 33).toChar).mkString
+    human.map(ch => (Order.indexOf(ch.toInt) + 33).toChar).mkString
 }

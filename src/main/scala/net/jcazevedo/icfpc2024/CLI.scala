@@ -4,7 +4,6 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext}
 
 import org.apache.pekko.actor.ActorSystem
-import org.jline.reader.impl.DefaultParser
 import org.jline.reader.{EndOfFileException, LineReader, LineReaderBuilder, UserInterruptException}
 import org.jline.terminal.{Terminal, TerminalBuilder}
 
