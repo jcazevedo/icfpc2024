@@ -6,7 +6,7 @@ object Interpreter {
   def unaryOp(op: ICFP.Operator.Unary, value: => ICFP.Atom): ICFP.Atom =
     (op, value) match {
       case (IntToString, int @ ICFP.Integer(value)) if value >= 0 =>
-        ICFP.String(int.toString().stripPrefix("I"))
+        ICFP.String(int.toString.stripPrefix("I").map(ch => ICFP.String.Order(ch.toInt - 33)).mkString)
 
       case (Negate, ICFP.Integer(value)) =>
         ICFP.Integer(-value)
@@ -17,8 +17,8 @@ object Interpreter {
       case (Not, ICFP.Boolean.False) =>
         ICFP.Boolean.True
 
-      case (StringToInt, ICFP.String(digits)) =>
-        ICFP.Integer(digits.foldLeft(0L)((ans, digit) => ans * 94 + (digit.toInt - 33)))
+      case (StringToInt, str: ICFP.String) =>
+        ICFP.Integer(str.toString().stripPrefix("S").foldLeft(0L)((ans, digit) => ans * 94 + (digit.toInt - 33)))
 
       case _ =>
         throw new IllegalArgumentException(s"Can't apply $op to $value")
