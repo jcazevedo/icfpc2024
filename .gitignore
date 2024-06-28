@@ -1,6 +1,7 @@
 .bloop
 .metals
 /.bsp/
+application.conf
 metals.sbt
 requests.http
 target/
