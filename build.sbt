@@ -13,5 +13,5 @@ lazy val root = (project in file("."))
     semanticdbVersion := scalafixSemanticdb.revision,
     scalafixOnCompile := true,
     fork              := true,
-    libraryDependencies ++= Seq(PekkoActor, PekkoHttp, PekkoStream, MUnit % Test)
+    libraryDependencies ++= Seq(PekkoActor, PekkoHttp, PekkoStream, PureConfigCore, PureConfigGeneric, MUnit % Test)
   )
