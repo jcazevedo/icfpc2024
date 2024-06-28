@@ -21,10 +21,11 @@ object Parser {
 
   private def unaryOp[$: P]: P[ICFP.Operator.Unary] =
     P(CharsWhile(_ != ' ').!).collect({
-      case "U-" => ICFP.Operator.Unary.Negate
-      case "U!" => ICFP.Operator.Unary.Not
-      case "U#" => ICFP.Operator.Unary.StringToInt
-      case "U$" => ICFP.Operator.Unary.IntToString
+      case "U-"                => ICFP.Operator.Unary.Negate
+      case "U!"                => ICFP.Operator.Unary.Not
+      case "U#"                => ICFP.Operator.Unary.StringToInt
+      case "U$"                => ICFP.Operator.Unary.IntToString
+      case s"L$variableNumber" => ICFP.Operator.Unary.LambdaAbstraction(ICFP.Integer.fromBase94(variableNumber))
     })
 
   private def unary[$: P]: P[ICFP.Expression.Unary] =
@@ -51,18 +52,18 @@ object Parser {
   private def binary[$: P]: P[ICFP.Expression.Binary] =
     P(binaryOp ~ expression ~ expression).map({ case (op, lhs, rhs) => ICFP.Expression.Binary(op, lhs, rhs) })
 
-  private def `if`[$: P]: P[ICFP.If] =
-    P("?" ~ expression ~ expression ~ expression).map({ case (condition, whenTrue, whenFalse) =>
-      ICFP.If(condition, whenTrue, whenFalse)
+  private def ternaryOp[$: P]: P[ICFP.Operator.Ternary] =
+    P(CharsWhile(_ != ' ').!).collect({ case "?" =>
+      ICFP.Operator.Ternary.If
     })
 
-  private def lambda[$: P]: P[ICFP.Lambda] =
-    P("L" ~~ CharsWhile(_ != ' ').! ~ expression).map({ case (variable, expression) =>
-      ICFP.Lambda(ICFP.Integer.fromBase94(variable), expression)
+  private def ternary[$: P]: P[ICFP.Expression.Ternary] =
+    P(ternaryOp ~ expression ~ expression ~ expression).map({ case (op, exp1, exp2, exp3) =>
+      ICFP.Expression.Ternary(op, exp1, exp2, exp3)
     })
 
   private def expression[$: P]: P[ICFP] =
-    P(boolean | integer | string | variable | unary | binary | `if` | lambda)
+    P(boolean | integer | string | variable | unary | binary | ternary)
 
   def parse(str: String): ICFP =
     fastparse.parse(str, expression(_)) match {

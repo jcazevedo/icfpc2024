@@ -79,6 +79,9 @@ object ICFP {
       case object IntToString extends ICFP.Operator.Unary {
         override def toString = "U$"
       }
+      case class LambdaAbstraction(variableNumber: Long) extends ICFP.Operator.Unary {
+        override def toString = s"L${ICFP.Integer.toBase94(variableNumber)}"
+      }
     }
 
     sealed trait Binary extends Operator
@@ -127,6 +130,14 @@ object ICFP {
         override def toString = "B$"
       }
     }
+
+    sealed trait Ternary extends Operator
+
+    case object Ternary {
+      case object If extends ICFP.Operator.Ternary {
+        override def toString = "?"
+      }
+    }
   }
 
   sealed trait Expression extends ICFP
@@ -138,13 +149,8 @@ object ICFP {
     case class Binary(operator: ICFP.Operator.Binary, lhs: ICFP, rhs: ICFP) extends Expression {
       override def toString = s"$operator $lhs $rhs"
     }
-  }
-
-  case class If(condition: ICFP, whenTrue: ICFP, whenFalse: ICFP) extends Expression {
-    override def toString = s"? $condition $whenTrue $whenFalse"
-  }
-
-  case class Lambda(variable: Long, expression: ICFP) extends Expression {
-    override def toString = s"L${ICFP.Integer.toBase94(variable)} $expression"
+    case class Ternary(operator: ICFP.Operator.Ternary, expr1: ICFP, expr2: ICFP, expr3: ICFP) extends Expression {
+      override def toString = s"$operator $expr1 $expr2 $expr3"
+    }
   }
 }
