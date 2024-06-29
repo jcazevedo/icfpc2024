@@ -14,7 +14,7 @@ object Parser {
     P("I" ~~ CharsWhile(_ != ' ').!).map(digits => ICFP.Integer(ICFP.Integer.fromBase94(digits)))
 
   private def string[$: P]: P[ICFP.String] =
-    P("S" ~~ CharsWhile(_ != ' ').!).map(str => ICFP.String(ICFP.String.fromHuman(str)))
+    P("S" ~~ CharsWhile(_ != ' ').?.!).map(str => ICFP.String(ICFP.String.fromHuman(str)))
 
   private def variable[$: P]: P[ICFP.Variable] =
     P("v" ~~ CharsWhile(_ != ' ').!).map(digits => ICFP.Variable(ICFP.Integer.fromBase94(digits)))
