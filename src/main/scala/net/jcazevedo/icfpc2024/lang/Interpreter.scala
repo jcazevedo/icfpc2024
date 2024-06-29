@@ -81,37 +81,30 @@ object Interpreter {
       case IntToString =>
         More({
           case int @ ICFP.Integer(value) if value >= 0 =>
-            Final(ICFP.String(ICFP.String.fromHuman(int.toString.stripPrefix("I"))))
+            Final(ICFP.String(ICFP.String.fromHuman(int.asString.stripPrefix("I"))))
         })
 
       case StringToInt =>
-        More({ case str: ICFP.String => Final(ICFP.Integer(ICFP.Integer.fromBase94(str.toString().stripPrefix("S")))) })
+        More({ case str: ICFP.String => Final(ICFP.Integer(ICFP.Integer.fromBase94(str.asString.stripPrefix("S")))) })
 
       case other =>
         throw error(other)
     }
   }
 
-  case class ExpressionContext(expr: ICFP, bindings: List[ExpressionContext], bound: Map[Long, ExpressionContext])
-
   def evaluate(expression: ICFP): ICFP.Atom = {
     val operations = mutable.Stack.empty[More]
-    val expressions = mutable.Stack.empty[ExpressionContext]
+    val expressions = mutable.Stack.empty[ICFP]
     val operandsInStack = mutable.Stack.empty[Int]
-    expressions.push(ExpressionContext(expression, List.empty, Map.empty))
+    val bindings = mutable.Stack.empty[ICFP]
+    val contexts = mutable.Stack.empty[Map[Long, ICFP]]
+
+    expressions.push(expression)
     operations.push(More({ case value => Final(value) }))
     operandsInStack.push(1)
+    contexts.push(Map.empty)
 
     while (operations.nonEmpty) {
-      // println("operators:")
-      // println(operations)
-      // println("expressions:")
-      // println(expressions)
-      // println("bindings:")
-      // println(bindings)
-      // println("context:")
-      // println(context)
-
       val More(f, skip) = operations.top
       if (skip > 0) {
         (0 until skip).foreach(_ => expressions.pop())
@@ -119,14 +112,14 @@ object Interpreter {
         operations.push(More(f, 0))
         val operands = operandsInStack.pop()
         operandsInStack.push(operands - skip)
-      } else if (expressions.top.expr.isAtom) {
+      } else if (expressions.top.isAtom) {
         val More(f, _) = operations.pop()
         val operands = operandsInStack.pop()
         val expr = expressions.pop()
-        f(expr.expr.asInstanceOf[ICFP.Atom]) match {
+        f(expr.asInstanceOf[ICFP.Atom]) match {
           case Final(res) =>
             (1 until operands).foreach(_ => expressions.pop())
-            expressions.push(ExpressionContext(res, expr.bindings, expr.bound))
+            expressions.push(res)
 
           case more: More =>
             operations.push(more)
@@ -135,48 +128,49 @@ object Interpreter {
       } else {
         expressions.pop() match {
           // Lambda absractions have a special treatment.
-          case ExpressionContext(Unary(LambdaAbstraction(variable), expr), bindings, bound) =>
-            operations.push(More({ case atom => Final(atom) }))
-            expressions.push(ExpressionContext(expr, bindings, bound + (variable -> bindings.head)))
+          case Unary(LambdaAbstraction(variable), expr) =>
+            contexts.push(contexts.top + (variable -> bindings.pop()))
+            operations.push(More({ case atom => { contexts.pop(); Final(atom) } }))
+            expressions.push(expr)
             operandsInStack.push(1)
 
-          case ExpressionContext(Unary(operator, expr), bindings, bound) =>
+          case Unary(operator, expr) =>
             operations.push(opResult(operator))
-            expressions.push(ExpressionContext(expr, bindings, bound))
+            expressions.push(expr)
             operandsInStack.push(1)
 
           // Lambda applications have a special treatment.
-          case ExpressionContext(Binary(LambdaApplication, lhs, rhs), bindings, bound) =>
+          case Binary(LambdaApplication, lhs, rhs) =>
+            bindings.push(rhs)
             operations.push(More({ case atom => Final(atom) }))
-            expressions.push(ExpressionContext(lhs, ExpressionContext(rhs, bindings, bound) :: bindings, bound))
+            expressions.push(lhs)
             operandsInStack.push(1)
 
-          case ExpressionContext(Binary(operator, lhs, rhs), bindings, bound) =>
+          case Binary(operator, lhs, rhs) =>
             operations.push(opResult(operator))
-            expressions.push(ExpressionContext(rhs, bindings, bound))
-            expressions.push(ExpressionContext(lhs, bindings, bound))
+            expressions.push(rhs)
+            expressions.push(lhs)
             operandsInStack.push(2)
 
-          case ExpressionContext(Ternary(operator, expr1, expr2, expr3), bindings, bound) =>
+          case Ternary(operator, expr1, expr2, expr3) =>
             operations.push(opResult(operator))
-            expressions.push(ExpressionContext(expr3, bindings, bound))
-            expressions.push(ExpressionContext(expr2, bindings, bound))
-            expressions.push(ExpressionContext(expr1, bindings, bound))
+            expressions.push(expr3)
+            expressions.push(expr2)
+            expressions.push(expr1)
             operandsInStack.push(3)
 
-          case ExpressionContext(Variable(value), bindings, bound) =>
-            println(s"Replacing ${Variable(value)} with ${bound(value)}")
-            expressions.push(bound(value))
+          case Variable(value) =>
+            expressions.push(contexts.top(value))
 
           case other =>
-            throw error(other.expr)
+            throw error(other)
         }
       }
     }
 
-    if (expressions.length != 1 || !expressions.top.expr.isInstanceOf[ICFP.Atom])
+    if (expressions.length != 1 || !expressions.top.isInstanceOf[ICFP.Atom])
       throw error(expression)
 
-    expressions.top.expr.asInstanceOf[ICFP.Atom]
+    expressions.top.asInstanceOf[ICFP.Atom]
   }
 }
