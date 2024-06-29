@@ -26,7 +26,7 @@ object CLI extends App {
   val client = new APIClient(config.uri, config.headers)
 
   def processLine(line: String): Unit =
-    println(Interpreter.evaluate(Parser.parse(client.postSync(ICFP.String(line).toString))).result)
+    println(Interpreter.evaluate(Parser.parse(client.postSync(ICFP.String(line).asString))).result)
 
   def loop(): Unit = {
     var more: Boolean = true
@@ -46,7 +46,7 @@ object CLI extends App {
       if (line != null) {
         val trimmed = line.trim
 
-        if (trimmed.equalsIgnoreCase("quit") || trimmed.equalsIgnoreCase("quit"))
+        if (trimmed.equalsIgnoreCase("quit") || trimmed.equalsIgnoreCase("exit"))
           more = false
         else
           processLine(line)
