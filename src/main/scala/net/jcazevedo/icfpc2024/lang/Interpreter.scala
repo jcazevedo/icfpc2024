@@ -92,7 +92,7 @@ object Interpreter {
     }
   }
 
-  case class ExpressionContext(expr: ICFP, bindings: List[ICFP], bound: Map[Long, ICFP])
+  case class ExpressionContext(expr: ICFP, bindings: List[ExpressionContext], bound: Map[Long, ExpressionContext])
 
   def evaluate(expression: ICFP): ICFP.Atom = {
     val operations = mutable.Stack.empty[More]
@@ -137,7 +137,7 @@ object Interpreter {
           // Lambda absractions have a special treatment.
           case ExpressionContext(Unary(LambdaAbstraction(variable), expr), bindings, bound) =>
             operations.push(More({ case atom => Final(atom) }))
-            expressions.push(ExpressionContext(expr, bindings.tail, bound + (variable -> bindings.head)))
+            expressions.push(ExpressionContext(expr, bindings, bound + (variable -> bindings.head)))
             operandsInStack.push(1)
 
           case ExpressionContext(Unary(operator, expr), bindings, bound) =>
@@ -148,7 +148,7 @@ object Interpreter {
           // Lambda applications have a special treatment.
           case ExpressionContext(Binary(LambdaApplication, lhs, rhs), bindings, bound) =>
             operations.push(More({ case atom => Final(atom) }))
-            expressions.push(ExpressionContext(lhs, rhs :: bindings, bound))
+            expressions.push(ExpressionContext(lhs, ExpressionContext(rhs, bindings, bound) :: bindings, bound))
             operandsInStack.push(1)
 
           case ExpressionContext(Binary(operator, lhs, rhs), bindings, bound) =>
@@ -166,7 +166,7 @@ object Interpreter {
 
           case ExpressionContext(Variable(value), bindings, bound) =>
             println(s"Replacing ${Variable(value)} with ${bound(value)}")
-            expressions.push(ExpressionContext(bound(value), bindings, bound))
+            expressions.push(bound(value))
 
           case other =>
             throw error(other.expr)

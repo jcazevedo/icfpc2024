@@ -9,7 +9,7 @@ import org.jline.terminal.{Terminal, TerminalBuilder}
 
 import net.jcazevedo.icfpc2024.api.APIClient
 import net.jcazevedo.icfpc2024.config.Config
-import net.jcazevedo.icfpc2024.lang.Strings
+import net.jcazevedo.icfpc2024.lang.{ICFP, Interpreter, Parser}
 
 object CLI extends App {
   val config: Config =
@@ -25,10 +25,8 @@ object CLI extends App {
   implicit val ec: ExecutionContext = system.dispatcher
   val client = new APIClient(config.uri, config.headers)
 
-  def processLine(line: String): Unit = {
-    val result = Strings.fromAlien(client.postSync(s"S${Strings.fromHuman(line)}").tail)
-    println(result)
-  }
+  def processLine(line: String): Unit =
+    println(Interpreter.evaluate(Parser.parse(client.postSync(ICFP.String(line).toString))).result)
 
   def loop(): Unit = {
     var more: Boolean = true
