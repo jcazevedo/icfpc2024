@@ -123,6 +123,23 @@ object Interpreter {
     }
   }
 
+  def freeVariables(icfp: ICFP, bound: Set[Long] = Set.empty): Set[Long] = {
+    icfp match {
+      case atom: ICFP.Atom =>
+        Set.empty
+      case ICFP.Variable(v) =>
+        if (!bound.contains(v)) Set(v) else Set.empty
+      case ICFP.Expression.Unary(LambdaAbstraction(value), expression) =>
+        freeVariables(expression, bound + value)
+      case ICFP.Expression.Unary(_, exp) =>
+        freeVariables(exp, bound)
+      case ICFP.Expression.Binary(op, lhs, rhs) =>
+        freeVariables(lhs, bound) ++ freeVariables(rhs, bound)
+      case ICFP.Expression.Ternary(op, e1, e2, e3) =>
+        freeVariables(e1, bound) ++ freeVariables(e2, bound) ++ freeVariables(e3, bound)
+    }
+  }
+
   def evaluate(expression: ICFP): ICFP.Atom = {
     val operations = mutable.Stack.empty[More]
     val expressions = mutable.Stack.empty[ICFP]
@@ -161,9 +178,16 @@ object Interpreter {
         expressions.pop() match {
           // Lambda absractions have a special treatment.
           case Unary(LambdaAbstraction(variable), expr) =>
-            // FIXME: We're not doing capture-avoiding substitution yet since it hasn't been required so far.
+            // FIXME: I think there's something wrong here still.
+            val free = freeVariables(bindings.top)
+            val (finalVariable, finalExpr) = if (free.contains(variable)) {
+              // If variable is in the free variables of the substitution, we replace it by something else.
+              val exprFree = freeVariables(expr)
+              val nextVariable = Iterator.iterate(0L)(_ + 1L).find(v => !exprFree.contains(v)).get
+              (nextVariable, replace(expr, variable, ICFP.Variable(nextVariable)))
+            } else (variable, expr)
             operations.push(More({ case atom => Final(atom) }))
-            expressions.push(replace(expr, variable, bindings.pop()))
+            expressions.push(replace(finalExpr, finalVariable, bindings.pop()))
             operandsInStack.push(1)
 
           case Unary(operator, expr) =>
