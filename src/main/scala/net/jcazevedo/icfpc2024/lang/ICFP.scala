@@ -1,10 +1,15 @@
 package net.jcazevedo.icfpc2024.lang
 
-sealed trait ICFP
+sealed trait ICFP {
+  def isAtom: Boolean
+}
 
 object ICFP {
   sealed trait Atom extends ICFP {
     def result: java.lang.String
+
+    def isAtom: scala.Boolean =
+      true
   }
 
   case class Boolean(value: scala.Boolean) extends ICFP.Atom {
@@ -59,6 +64,9 @@ object ICFP {
   case class Variable(value: Long) extends ICFP {
     override def toString =
       s"v${Integer.toBase94(value)}"
+
+    def isAtom: scala.Boolean =
+      false
   }
 
   sealed trait Operator
@@ -140,7 +148,10 @@ object ICFP {
     }
   }
 
-  sealed trait Expression extends ICFP
+  sealed trait Expression extends ICFP {
+    def isAtom: scala.Boolean =
+      false
+  }
 
   object Expression {
     case class Unary(operator: ICFP.Operator.Unary, expression: ICFP) extends Expression {

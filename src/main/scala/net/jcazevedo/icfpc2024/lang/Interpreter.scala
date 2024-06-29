@@ -1,7 +1,12 @@
 package net.jcazevedo.icfpc2024.lang
 
+import scala.collection.mutable
+
+import net.jcazevedo.icfpc2024.lang.ICFP.Expression.{Binary, Ternary, Unary}
 import net.jcazevedo.icfpc2024.lang.ICFP.Operator.Binary._
+import net.jcazevedo.icfpc2024.lang.ICFP.Operator.Ternary.If
 import net.jcazevedo.icfpc2024.lang.ICFP.Operator.Unary._
+import net.jcazevedo.icfpc2024.lang.ICFP.{Operator, Variable}
 
 object Interpreter {
   def error(op: ICFP.Operator.Unary, value: ICFP): Exception =
@@ -10,86 +15,151 @@ object Interpreter {
   def error(op: ICFP.Operator.Binary, lhs: ICFP, rhs: ICFP): Exception =
     new IllegalArgumentException(s"Can't apply $op to $lhs and $rhs")
 
-  def evaluate(expression: ICFP): ICFP =
-    expression match {
-      case atom: ICFP.Atom =>
-        atom
+  def error(value: ICFP): Exception =
+    new IllegalArgumentException(s"Unexpected value $value")
 
-      case lambda: ICFP.Lambda =>
-        lambda
+  sealed trait Result
+  case class Final(res: ICFP.Atom) extends Result
+  case class More(f: PartialFunction[ICFP.Atom, Result], skip: Int = 0) extends Result
 
-      case ICFP.Expression.Unary(op, value) =>
-        (op, evaluate(value)) match {
-          case (IntToString, int @ ICFP.Integer(value)) if value >= 0 =>
-            ICFP.String(ICFP.String.fromHuman(int.toString.stripPrefix("I")))
+  def opResult(operator: Operator): More = {
+    operator match {
+      case Drop =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.String(y) => Final(ICFP.String(y.drop(x.toInt))) }) })
 
-          case (Negate, ICFP.Integer(value)) =>
-            ICFP.Integer(-value)
+      case LambdaApplication =>
+        ???
 
-          case (Not, ICFP.Boolean(v)) =>
-            ICFP.Boolean(!v)
+      case IsEqual =>
+        More({ case x => More({ case y => Final(ICFP.Boolean(x == y)) }) })
 
-          case (StringToInt, str: ICFP.String) =>
-            ICFP.Integer(ICFP.Integer.fromBase94(str.toString().stripPrefix("S")))
+      case Add =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Integer(x + y)) }) })
 
-          case _ =>
-            throw error(op, value)
+      case Multiply =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Integer(x * y)) }) })
+
+      case Or =>
+        More({
+          case ICFP.Boolean(true)  => Final(ICFP.Boolean(true))
+          case ICFP.Boolean(false) => More({ case ICFP.Boolean(y) => Final(ICFP.Boolean(y)) })
+        })
+
+      case Take =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.String(y) => Final(ICFP.String(y.take(x.toInt))) }) })
+
+      case IsLessThan =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Boolean(x < y)) }) })
+
+      case Subtract =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Integer(x - y)) }) })
+
+      case Modulo =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Integer(x % y)) }) })
+
+      case And =>
+        More({
+          case ICFP.Boolean(false) => Final(ICFP.Boolean(false))
+          case ICFP.Boolean(true)  => More({ case ICFP.Boolean(y) => Final(ICFP.Boolean(y)) })
+        })
+
+      case Concatenate =>
+        More({ case ICFP.String(x) => More({ case ICFP.String(y) => Final(ICFP.String(x + y)) }) })
+
+      case IsGreaterThan =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Boolean(x > y)) }) })
+
+      case Divide =>
+        More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Integer(x / y)) }) })
+
+      case If =>
+        More({
+          case ICFP.Boolean(true)  => More({ case atom => Final(atom) })
+          case ICFP.Boolean(false) => More({ case atom => Final(atom) }, skip = 1)
+        })
+
+      case Negate =>
+        More({ case ICFP.Integer(value) => Final(ICFP.Integer(-value)) })
+
+      case LambdaAbstraction(variableNumber) =>
+        ???
+
+      case Not =>
+        More({ case ICFP.Boolean(value) => Final(ICFP.Boolean(!value)) })
+
+      case IntToString =>
+        More({
+          case int @ ICFP.Integer(value) if value >= 0 =>
+            Final(ICFP.String(ICFP.String.fromHuman(int.toString.stripPrefix("I"))))
+        })
+
+      case StringToInt =>
+        More({ case str: ICFP.String => Final(ICFP.Integer(ICFP.Integer.fromBase94(str.toString().stripPrefix("S")))) })
+    }
+  }
+
+  def evaluate(expression: ICFP): ICFP.Atom = {
+    val operators = mutable.Stack.empty[More]
+    val expressions = mutable.Stack.empty[ICFP]
+    val operandsInStack = mutable.Stack.empty[Int]
+    expressions.push(expression)
+    operators.push(More({ case value => Final(value) }))
+    operandsInStack.push(1)
+
+    while (operators.nonEmpty) {
+      println("operators:")
+      println(operators)
+      println("expressions:")
+      println(expressions)
+
+      val More(f, skip) = operators.top
+
+      if (expressions.top.isAtom) {
+        operators.pop()
+        val operands = operandsInStack.pop()
+        (0 until skip).foreach(_ => expressions.pop())
+        val expr = expressions.pop().asInstanceOf[ICFP.Atom]
+        f(expr) match {
+          case Final(res) =>
+            (1 until (operands - skip)).foreach(_ => expressions.pop())
+            expressions.push(res)
+
+          case more: More =>
+            operators.push(more)
+            operandsInStack.push(operands - skip - 1)
         }
+      } else {
+        expressions.pop() match {
+          case Unary(operator, expr) =>
+            operators.push(opResult(operator))
+            expressions.push(expr)
+            operandsInStack.push(1)
 
-      case ICFP.Expression.Binary(op, lhs, rhs) =>
-        (op, evaluate(lhs), evaluate(rhs)) match {
-          case (And, ICFP.Boolean(x), ICFP.Boolean(y)) =>
-            ICFP.Boolean(x && y)
+          case Binary(operator, lhs, rhs) =>
+            operators.push(opResult(operator))
+            expressions.push(rhs)
+            expressions.push(lhs)
+            operandsInStack.push(2)
 
-          case (Add, ICFP.Integer(x), ICFP.Integer(y)) =>
-            ICFP.Integer(x + y)
+          case Ternary(operator, expr1, expr2, expr3) =>
+            operators.push(opResult(operator))
+            expressions.push(expr3)
+            expressions.push(expr2)
+            expressions.push(expr1)
+            operandsInStack.push(3)
 
-          case (IsGreaterThan, ICFP.Integer(x), ICFP.Integer(y)) =>
-            ICFP.Boolean(x > y)
-
-          case (IsLessThan, ICFP.Integer(x), ICFP.Integer(y)) =>
-            ICFP.Boolean(x < y)
-
-          case (Or, ICFP.Boolean(x), ICFP.Boolean(y)) =>
-            ICFP.Boolean(x || y)
-
-          case (IsEqual, x, y) =>
-            ICFP.Boolean(x == y)
-
-          case (Multiply, ICFP.Integer(x), ICFP.Integer(y)) =>
-            ICFP.Integer(x * y)
-
-          case (Take, ICFP.Integer(x), ICFP.String(y)) =>
-            ICFP.String(y.take(x.toInt))
-
-          case (Modulo, ICFP.Integer(x), ICFP.Integer(y)) =>
-            ICFP.Integer(x % y)
-
-          case (Subtract, ICFP.Integer(x), ICFP.Integer(y)) =>
-            ICFP.Integer(x - y)
-
-          case (Concatenate, ICFP.String(x), ICFP.String(y)) =>
-            ICFP.String(x + y)
-
-          case (Divide, ICFP.Integer(x), ICFP.Integer(y)) =>
-            ICFP.Integer(x / y)
-
-          case (Drop, ICFP.Integer(x), ICFP.String(y)) =>
-            ICFP.String(y.drop(x.toInt))
-
-          case _ =>
-            throw error(op, lhs, rhs)
-        }
-
-      case ICFP.If(condition, whenTrue, whenFalse) =>
-        evaluate(condition) match {
-          case ICFP.Boolean(value) =>
-            if (value) evaluate(whenTrue) else evaluate(whenFalse)
+          case Variable(value) =>
+            ???
 
           case other =>
-            throw new IllegalArgumentException(s"$condition doesn't evaluate to a boolean")
+            throw error(other)
         }
-
-      case _ => ???
+      }
     }
+
+    if (expressions.length != 1 || !expressions.top.isInstanceOf[ICFP.Atom])
+      throw error(expression)
+
+    expressions.top.asInstanceOf[ICFP.Atom]
+  }
 }
