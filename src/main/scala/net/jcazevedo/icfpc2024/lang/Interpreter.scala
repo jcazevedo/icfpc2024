@@ -3,10 +3,10 @@ package net.jcazevedo.icfpc2024.lang
 import scala.collection.mutable
 
 import net.jcazevedo.icfpc2024.lang.ICFP.Expression.{Binary, Ternary, Unary}
+import net.jcazevedo.icfpc2024.lang.ICFP.Operator
 import net.jcazevedo.icfpc2024.lang.ICFP.Operator.Binary._
 import net.jcazevedo.icfpc2024.lang.ICFP.Operator.Ternary.If
 import net.jcazevedo.icfpc2024.lang.ICFP.Operator.Unary._
-import net.jcazevedo.icfpc2024.lang.ICFP.{Operator, Variable}
 
 object Interpreter {
   def error(op: ICFP.Operator.Unary, value: ICFP): Exception =
@@ -92,17 +92,43 @@ object Interpreter {
     }
   }
 
+  def replace(icfp: ICFP, variable: Long, replacement: ICFP, bound: Set[Long] = Set.empty): ICFP = {
+    icfp match {
+      case atom: ICFP.Atom =>
+        atom
+      case ICFP.Variable(v) if !bound.contains(v) && v == variable =>
+        replacement
+      case ICFP.Variable(v) =>
+        ICFP.Variable(v)
+      case ICFP.Expression.Unary(LambdaAbstraction(value), expression) =>
+        ICFP.Expression.Unary(LambdaAbstraction(value), replace(expression, variable, replacement, bound + value))
+      case ICFP.Expression.Unary(op, exp) =>
+        ICFP.Expression.Unary(op, replace(exp, variable, replacement, bound))
+      case ICFP.Expression.Binary(op, lhs, rhs) =>
+        ICFP.Expression.Binary(
+          op,
+          replace(lhs, variable, replacement, bound),
+          replace(rhs, variable, replacement, bound)
+        )
+      case ICFP.Expression.Ternary(op, e1, e2, e3) =>
+        ICFP.Expression.Ternary(
+          op,
+          replace(e1, variable, replacement, bound),
+          replace(e2, variable, replacement, bound),
+          replace(e3, variable, replacement, bound)
+        )
+    }
+  }
+
   def evaluate(expression: ICFP): ICFP.Atom = {
     val operations = mutable.Stack.empty[More]
     val expressions = mutable.Stack.empty[ICFP]
     val operandsInStack = mutable.Stack.empty[Int]
     val bindings = mutable.Stack.empty[ICFP]
-    val contexts = mutable.Stack.empty[Map[Long, ICFP]]
 
     expressions.push(expression)
     operations.push(More({ case value => Final(value) }))
     operandsInStack.push(1)
-    contexts.push(Map.empty)
 
     while (operations.nonEmpty) {
       val More(f, skip) = operations.top
@@ -129,9 +155,9 @@ object Interpreter {
         expressions.pop() match {
           // Lambda absractions have a special treatment.
           case Unary(LambdaAbstraction(variable), expr) =>
-            contexts.push(contexts.top + (variable -> bindings.pop()))
-            operations.push(More({ case atom => { contexts.pop(); Final(atom) } }))
-            expressions.push(expr)
+            // FIXME: We're not doing capture-avoiding substitution yet since it hasn't been required so far.
+            operations.push(More({ case atom => Final(atom) }))
+            expressions.push(replace(expr, variable, bindings.pop()))
             operandsInStack.push(1)
 
           case Unary(operator, expr) =>
@@ -158,9 +184,6 @@ object Interpreter {
             expressions.push(expr2)
             expressions.push(expr1)
             operandsInStack.push(3)
-
-          case Variable(value) =>
-            expressions.push(contexts.top(value))
 
           case other =>
             throw error(other)
