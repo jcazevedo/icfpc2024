@@ -40,10 +40,7 @@ object Interpreter {
         More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Integer(x * y)) }) })
 
       case Or =>
-        More({
-          case ICFP.Boolean(true)  => Final(ICFP.Boolean(true))
-          case ICFP.Boolean(false) => More({ case ICFP.Boolean(y) => Final(ICFP.Boolean(y)) })
-        })
+        More({ case ICFP.Boolean(x) => More({ case ICFP.Boolean(y) => Final(ICFP.Boolean(x || y)) }) })
 
       case Take =>
         More({ case ICFP.Integer(x) => More({ case ICFP.String(y) => Final(ICFP.String(y.take(x.toInt))) }) })
@@ -58,10 +55,7 @@ object Interpreter {
         More({ case ICFP.Integer(x) => More({ case ICFP.Integer(y) => Final(ICFP.Integer(x % y)) }) })
 
       case And =>
-        More({
-          case ICFP.Boolean(false) => Final(ICFP.Boolean(false))
-          case ICFP.Boolean(true)  => More({ case ICFP.Boolean(y) => Final(ICFP.Boolean(y)) })
-        })
+        More({ case ICFP.Boolean(x) => More({ case ICFP.Boolean(y) => Final(ICFP.Boolean(x && y)) }) })
 
       case Concatenate =>
         More({ case ICFP.String(x) => More({ case ICFP.String(y) => Final(ICFP.String(x + y)) }) })
