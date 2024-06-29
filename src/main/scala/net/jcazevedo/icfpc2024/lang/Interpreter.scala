@@ -92,30 +92,33 @@ object Interpreter {
     }
   }
 
-  def replace(icfp: ICFP, variable: Long, replacement: ICFP, bound: Set[Long] = Set.empty): ICFP = {
+  def replace(icfp: ICFP, variable: Long, replacement: ICFP, isBound: Boolean = false): ICFP = {
     icfp match {
       case atom: ICFP.Atom =>
         atom
-      case ICFP.Variable(v) if !bound.contains(v) && v == variable =>
+      case ICFP.Variable(v) if v == variable && !isBound =>
         replacement
       case ICFP.Variable(v) =>
         ICFP.Variable(v)
       case ICFP.Expression.Unary(LambdaAbstraction(value), expression) =>
-        ICFP.Expression.Unary(LambdaAbstraction(value), replace(expression, variable, replacement, bound + value))
+        ICFP.Expression.Unary(
+          LambdaAbstraction(value),
+          replace(expression, variable, replacement, isBound || value == variable)
+        )
       case ICFP.Expression.Unary(op, exp) =>
-        ICFP.Expression.Unary(op, replace(exp, variable, replacement, bound))
+        ICFP.Expression.Unary(op, replace(exp, variable, replacement, isBound))
       case ICFP.Expression.Binary(op, lhs, rhs) =>
         ICFP.Expression.Binary(
           op,
-          replace(lhs, variable, replacement, bound),
-          replace(rhs, variable, replacement, bound)
+          replace(lhs, variable, replacement, isBound),
+          replace(rhs, variable, replacement, isBound)
         )
       case ICFP.Expression.Ternary(op, e1, e2, e3) =>
         ICFP.Expression.Ternary(
           op,
-          replace(e1, variable, replacement, bound),
-          replace(e2, variable, replacement, bound),
-          replace(e3, variable, replacement, bound)
+          replace(e1, variable, replacement, isBound),
+          replace(e2, variable, replacement, isBound),
+          replace(e3, variable, replacement, isBound)
         )
     }
   }
