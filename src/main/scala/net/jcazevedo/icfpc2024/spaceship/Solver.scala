@@ -20,59 +20,34 @@ object Solver {
 
   case class State(px: Int, py: Int, vx: Int, vy: Int)
 
-  def solve(points: Vector[(Int, Int)]): String = {
-    def bfs(from: (Int, Int), to: (Int, Int)): String = {
-      // X
-      val visitedX = mutable.Map.empty[(Int, Int), Vector[Int]]
-      visitedX((from._1, 0)) = Vector.empty
-      val q = mutable.Queue.empty[(Int, Int)]
-      q.enqueue((from._1, 0))
-
-      while (q.nonEmpty && !visitedX.contains((to._1, 0))) {
-        val curr @ (currX, currVX) = q.dequeue()
-
-        (-1 to 1).foreach { dvx =>
-          val next = (currX + currVX + dvx, currVX + dvx)
-          if (!visitedX.contains(next)) {
-            visitedX(next) = visitedX(curr) :+ dvx
-            q.enqueue(next)
-          }
-        }
-      }
-
-      // Y
-      val visitedY = mutable.Map.empty[(Int, Int), Vector[Int]]
-      visitedY((from._2, 0)) = Vector.empty
-      q.clear()
-      q.enqueue((from._2, 0))
-
-      while (q.nonEmpty && !visitedY.contains((to._2, 0))) {
-        val curr @ (currY, currVY) = q.dequeue()
-
-        (-1 to 1).foreach { dvy =>
-          val next = (currY + currVY + dvy, currVY + dvy)
-          if (!visitedY.contains(next)) {
-            visitedY(next) = visitedY(curr) :+ dvy
-            q.enqueue(next)
-          }
-        }
-      }
-
-      // Combine
-      val dxs = visitedX((to._1, 0))
-      val dys = visitedY((to._2, 0))
-      val ds = dxs.zipAll(dys, 0, 0)
-      ds.map(ToStep).mkString
+  def lineSteps(from: Int, to: Int): Vector[Int] = {
+    val dist = math.abs(to - from)
+    val diff = math.signum(to - from)
+    val t = math.sqrt(dist.toDouble).toInt
+    val tmpAccelerations = Vector.fill(math.max(t, 1))(diff) ++ Vector.fill(math.max(t, 1))(-diff)
+    val finalDist = math.max(t, 1) * math.max(t, 1)
+    if (finalDist == dist) tmpAccelerations
+    else {
+      val finalAcc = tmpAccelerations.last
+      tmpAccelerations.init ++ Vector.fill(dist - finalDist)(0) :+ finalAcc
     }
+  }
 
+  def steps(from: (Int, Int), to: (Int, Int)): String = {
+    val stepsX = lineSteps(from._1, to._1)
+    val stepsY = lineSteps(from._2, to._2)
+    stepsX.zipAll(stepsY, 0, 0).map(ToStep).mkString
+  }
+
+  def solve(points: Vector[(Int, Int)]): String = {
+    val toVisit = points.toSet
     var ans = ""
     var curr = (0, 0)
 
-    points.foreach(next => {
-      val ops = bfs(curr, next)
-      ans += ops
+    toVisit.foreach { next =>
+      ans += steps(curr, next)
       curr = next
-    })
+    }
 
     ans
   }
