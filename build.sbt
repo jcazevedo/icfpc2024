@@ -32,7 +32,8 @@ lazy val icfpc2024 = (project in file("."))
       PureConfigCore,
       PureConfigGeneric,
       PureConfigPekkoHttp,
-      ScalaLogging
+      ScalaLogging,
+      MUnit % Test
     ),
     assembly / mainClass             := Some("net.jcazevedo.icfpc2024.CLI"),
     assembly / assemblyJarName       := name.value + ".jar",
