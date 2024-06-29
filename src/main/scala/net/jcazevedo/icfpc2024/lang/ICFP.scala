@@ -9,10 +9,8 @@ sealed trait ICFP {
         if (value) "T" else "F"
 
       case ICFP.Integer(value) =>
-        if (value < 0)
-          ICFP.Expression.Unary(ICFP.Operator.Unary.Negate, ICFP.Integer(-value)).asString
-        else
-          s"I${ICFP.Integer.toBase94(value)}"
+        if (value < 0) ICFP.Expression.Unary(ICFP.Operator.Unary.Negate, ICFP.Integer(-value)).asString
+        else s"I${ICFP.Integer.toBase94(value)}"
 
       case ICFP.String(value) =>
         s"S${value.map(ch => (ICFP.String.Order.indexOf(ch.toInt) + 33).toChar).mkString}"
