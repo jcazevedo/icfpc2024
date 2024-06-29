@@ -132,14 +132,16 @@ object Interpreter {
 
     while (operations.nonEmpty) {
       val More(f, skip) = operations.top
+
       if (skip > 0) {
         (0 until skip).foreach(_ => expressions.pop())
         operations.pop()
         operations.push(More(f, 0))
         val operands = operandsInStack.pop()
         operandsInStack.push(operands - skip)
+
       } else if (expressions.top.isAtom) {
-        val More(f, _) = operations.pop()
+        operations.pop()
         val operands = operandsInStack.pop()
         val expr = expressions.pop()
         f(expr.asInstanceOf[ICFP.Atom]) match {
@@ -151,6 +153,7 @@ object Interpreter {
             operations.push(more)
             operandsInStack.push(operands - 1)
         }
+
       } else {
         expressions.pop() match {
           // Lambda absractions have a special treatment.
