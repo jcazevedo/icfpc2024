@@ -76,9 +76,6 @@ object ICFP {
   }
 
   case class Variable(value: Long) extends ICFP {
-    override def toString =
-      s"v${Integer.toBase94(value)}"
-
     def isAtom: scala.Boolean =
       false
   }
