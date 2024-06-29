@@ -21,20 +21,9 @@ object Interpreter {
   def error(operator: ICFP.Operator): Exception =
     new IllegalArgumentException(s"Unexpected operator $operator")
 
-  sealed trait ContextOp
-  case object Empty extends ContextOp
-  case class PushBinding(expr: ICFP.Atom) extends ContextOp
-  case object PopBinding extends ContextOp
-  case class PushContext(variable: Long) extends ContextOp
-  case object PopContext extends ContextOp
-
-  sealed trait Operation {
-    def contextOp: ContextOp
-  }
-  case class Contextual(contextOp: ContextOp) extends Operation
-  case class Final(res: ICFP.Atom, contextOp: ContextOp = Empty) extends Operation
-  case class More(f: PartialFunction[ICFP.Atom, Operation], skip: Int = 0, contextOp: ContextOp = Empty)
-      extends Operation
+  sealed trait Operation
+  case class Final(res: ICFP.Atom) extends Operation
+  case class More(f: PartialFunction[ICFP.Atom, Operation], skip: Int = 0) extends Operation
 
   def opResult(operator: Operator): More = {
     operator match {
@@ -103,25 +92,15 @@ object Interpreter {
     }
   }
 
+  case class ExpressionContext(expr: ICFP, bindings: List[ICFP], bound: Map[Long, ICFP])
+
   def evaluate(expression: ICFP): ICFP.Atom = {
     val operations = mutable.Stack.empty[More]
-    val expressions = mutable.Stack.empty[ICFP]
+    val expressions = mutable.Stack.empty[ExpressionContext]
     val operandsInStack = mutable.Stack.empty[Int]
-    val bindings = mutable.Stack.empty[ICFP]
-    val context = mutable.Stack.empty[Map[Long, ICFP]]
-    expressions.push(expression)
+    expressions.push(ExpressionContext(expression, List.empty, Map.empty))
     operations.push(More({ case value => Final(value) }))
     operandsInStack.push(1)
-    context.push(Map.empty)
-
-    def applyContextOp(contextOp: ContextOp): Unit =
-      contextOp match {
-        case Empty                 => // do nothing
-        case PushBinding(expr)     => bindings.push(expr)
-        case PopBinding            => bindings.pop()
-        case PushContext(variable) => context.push(context.top + (variable -> bindings.top))
-        case PopContext            => context.pop()
-      }
 
     while (operations.nonEmpty) {
       // println("operators:")
@@ -133,26 +112,21 @@ object Interpreter {
       // println("context:")
       // println(context)
 
-      val More(f, skip, contextOp) = operations.top
+      val More(f, skip) = operations.top
       if (skip > 0) {
         (0 until skip).foreach(_ => expressions.pop())
         operations.pop()
-        operations.push(More(f, 0, contextOp))
+        operations.push(More(f, 0))
         val operands = operandsInStack.pop()
         operandsInStack.push(operands - skip)
-      } else if (expressions.top.isAtom) {
-        val More(f, _, contextOp) = operations.pop()
-        applyContextOp(contextOp)
+      } else if (expressions.top.expr.isAtom) {
+        val More(f, _) = operations.pop()
         val operands = operandsInStack.pop()
-        val expr = expressions.pop().asInstanceOf[ICFP.Atom]
-        f(expr) match {
-          case Final(res, contextOp) =>
-            applyContextOp(contextOp)
+        val expr = expressions.pop()
+        f(expr.expr.asInstanceOf[ICFP.Atom]) match {
+          case Final(res) =>
             (1 until operands).foreach(_ => expressions.pop())
-            expressions.push(res)
-
-          case Contextual(contextOp) =>
-            applyContextOp(contextOp)
+            expressions.push(ExpressionContext(res, expr.bindings, expr.bound))
 
           case more: More =>
             operations.push(more)
@@ -161,52 +135,48 @@ object Interpreter {
       } else {
         expressions.pop() match {
           // Lambda absractions have a special treatment.
-          case Unary(LambdaAbstraction(variable), expr) =>
-            context.push(context.top + (variable -> bindings.top))
-            operations.push(More({ case atom => Final(atom, contextOp = PopContext) }))
-            expressions.push(expr)
+          case ExpressionContext(Unary(LambdaAbstraction(variable), expr), bindings, bound) =>
+            operations.push(More({ case atom => Final(atom) }))
+            expressions.push(ExpressionContext(expr, bindings.tail, bound + (variable -> bindings.head)))
             operandsInStack.push(1)
 
-          case Unary(operator, expr) =>
+          case ExpressionContext(Unary(operator, expr), bindings, bound) =>
             operations.push(opResult(operator))
-            expressions.push(expr)
+            expressions.push(ExpressionContext(expr, bindings, bound))
             operandsInStack.push(1)
 
           // Lambda applications have a special treatment.
-          case Binary(LambdaApplication, lhs, rhs) =>
-            operations.push(More({ case atom => Final(atom, contextOp = PopBinding) }))
-            expressions.push(lhs)
+          case ExpressionContext(Binary(LambdaApplication, lhs, rhs), bindings, bound) =>
+            operations.push(More({ case atom => Final(atom) }))
+            expressions.push(ExpressionContext(lhs, rhs :: bindings, bound))
             operandsInStack.push(1)
-            bindings.push(rhs)
-          // operations.push(More({ case atom => Contextual(contextOp = PushBinding(atom)) }))
-          // expressions.push(rhs)
-          // operandsInStack.push(1)
 
-          case Binary(operator, lhs, rhs) =>
+          case ExpressionContext(Binary(operator, lhs, rhs), bindings, bound) =>
             operations.push(opResult(operator))
-            expressions.push(rhs)
-            expressions.push(lhs)
+            expressions.push(ExpressionContext(rhs, bindings, bound))
+            expressions.push(ExpressionContext(lhs, bindings, bound))
             operandsInStack.push(2)
 
-          case Ternary(operator, expr1, expr2, expr3) =>
+          case ExpressionContext(Ternary(operator, expr1, expr2, expr3), bindings, bound) =>
             operations.push(opResult(operator))
-            expressions.push(expr3)
-            expressions.push(expr2)
-            expressions.push(expr1)
+            expressions.push(ExpressionContext(expr3, bindings, bound))
+            expressions.push(ExpressionContext(expr2, bindings, bound))
+            expressions.push(ExpressionContext(expr1, bindings, bound))
             operandsInStack.push(3)
 
-          case Variable(value) =>
-            expressions.push(context.top(value))
+          case ExpressionContext(Variable(value), bindings, bound) =>
+            println(s"Replacing ${Variable(value)} with ${bound(value)}")
+            expressions.push(ExpressionContext(bound(value), bindings, bound))
 
           case other =>
-            throw error(other)
+            throw error(other.expr)
         }
       }
     }
 
-    if (expressions.length != 1 || !expressions.top.isInstanceOf[ICFP.Atom])
+    if (expressions.length != 1 || !expressions.top.expr.isInstanceOf[ICFP.Atom])
       throw error(expression)
 
-    expressions.top.asInstanceOf[ICFP.Atom]
+    expressions.top.expr.asInstanceOf[ICFP.Atom]
   }
 }
