@@ -92,7 +92,7 @@ object Interpreter {
     }
   }
 
-  def replace(icfp: ICFP, variable: Int, replacement: ICFP, isBound: Boolean = false): ICFP = {
+  def betaReduction(icfp: ICFP, variable: Int, replacement: ICFP, isBound: Boolean = false): ICFP = {
     icfp match {
       case atom: ICFP.Atom =>
         atom
@@ -103,22 +103,22 @@ object Interpreter {
       case ICFP.Expression.Unary(LambdaAbstraction(value), expression) =>
         ICFP.Expression.Unary(
           LambdaAbstraction(value),
-          replace(expression, variable, replacement, isBound || value == variable)
+          betaReduction(expression, variable, replacement, isBound || value == variable)
         )
       case ICFP.Expression.Unary(op, exp) =>
-        ICFP.Expression.Unary(op, replace(exp, variable, replacement, isBound))
+        ICFP.Expression.Unary(op, betaReduction(exp, variable, replacement, isBound))
       case ICFP.Expression.Binary(op, lhs, rhs) =>
         ICFP.Expression.Binary(
           op,
-          replace(lhs, variable, replacement, isBound),
-          replace(rhs, variable, replacement, isBound)
+          betaReduction(lhs, variable, replacement, isBound),
+          betaReduction(rhs, variable, replacement, isBound)
         )
       case ICFP.Expression.Ternary(op, e1, e2, e3) =>
         ICFP.Expression.Ternary(
           op,
-          replace(e1, variable, replacement, isBound),
-          replace(e2, variable, replacement, isBound),
-          replace(e3, variable, replacement, isBound)
+          betaReduction(e1, variable, replacement, isBound),
+          betaReduction(e2, variable, replacement, isBound),
+          betaReduction(e3, variable, replacement, isBound)
         )
     }
   }
@@ -183,10 +183,10 @@ object Interpreter {
               // If variable is in the free variables of the substitution, we replace it by something else.
               val exprFree = freeVariables(expr)
               val nextVariable = Iterator.iterate(0)(_ + 1).find(v => !exprFree.contains(v)).get
-              (nextVariable, replace(expr, variable, ICFP.Variable(nextVariable)))
+              (nextVariable, betaReduction(expr, variable, ICFP.Variable(nextVariable)))
             } else (variable, expr)
             operations.push(More({ case atom => Final(atom) }))
-            expressions.push(replace(finalExpr, finalVariable, bindings.pop()))
+            expressions.push(betaReduction(finalExpr, finalVariable, bindings.pop()))
             operandsInStack.push(1)
 
           case Unary(operator, expr) =>
