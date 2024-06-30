@@ -92,7 +92,7 @@ object Interpreter {
     }
   }
 
-  def replace(icfp: ICFP, variable: Long, replacement: ICFP, isBound: Boolean = false): ICFP = {
+  def replace(icfp: ICFP, variable: Int, replacement: ICFP, isBound: Boolean = false): ICFP = {
     icfp match {
       case atom: ICFP.Atom =>
         atom
@@ -123,7 +123,7 @@ object Interpreter {
     }
   }
 
-  def freeVariables(icfp: ICFP, bound: Set[Long] = Set.empty): Set[Long] = {
+  def freeVariables(icfp: ICFP, bound: Set[Int] = Set.empty): Set[Int] = {
     icfp match {
       case atom: ICFP.Atom =>
         Set.empty
@@ -178,12 +178,11 @@ object Interpreter {
         expressions.pop() match {
           // Lambda absractions have a special treatment.
           case Unary(LambdaAbstraction(variable), expr) =>
-            // FIXME: I think there's something wrong here still.
             val free = freeVariables(bindings.top)
             val (finalVariable, finalExpr) = if (free.contains(variable)) {
               // If variable is in the free variables of the substitution, we replace it by something else.
               val exprFree = freeVariables(expr)
-              val nextVariable = Iterator.iterate(0L)(_ + 1L).find(v => !exprFree.contains(v)).get
+              val nextVariable = Iterator.iterate(0)(_ + 1).find(v => !exprFree.contains(v)).get
               (nextVariable, replace(expr, variable, ICFP.Variable(nextVariable)))
             } else (variable, expr)
             operations.push(More({ case atom => Final(atom) }))

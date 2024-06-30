@@ -17,7 +17,7 @@ object Parser {
     P("S" ~~ CharsWhile(_ != ' ').?.!).map(str => ICFP.String(ICFP.String.fromHuman(str)))
 
   private def variable[$: P]: P[ICFP.Variable] =
-    P("v" ~~ CharsWhile(_ != ' ').!).map(digits => ICFP.Variable(ICFP.Integer.fromBase94(digits)))
+    P("v" ~~ CharsWhile(_ != ' ').!).map(digits => ICFP.Variable(ICFP.Integer.fromBase94(digits).toInt))
 
   private def unaryOp[$: P]: P[ICFP.Operator.Unary] =
     P(CharsWhile(_ != ' ').!).collect({
@@ -25,7 +25,7 @@ object Parser {
       case "U!"                => ICFP.Operator.Unary.Not
       case "U#"                => ICFP.Operator.Unary.StringToInt
       case "U$"                => ICFP.Operator.Unary.IntToString
-      case s"L$variableNumber" => ICFP.Operator.Unary.LambdaAbstraction(ICFP.Integer.fromBase94(variableNumber))
+      case s"L$variableNumber" => ICFP.Operator.Unary.LambdaAbstraction(ICFP.Integer.fromBase94(variableNumber).toInt)
     })
 
   private def unary[$: P]: P[ICFP.Expression.Unary] =

@@ -41,12 +41,12 @@ object ICFP {
     def result = value.toString
   }
 
-  case class Integer(value: Long) extends ICFP.Atom {
+  case class Integer(value: BigInt) extends ICFP.Atom {
     def result = s"$value"
   }
 
   object Integer {
-    def toBase94(value: Long): java.lang.String =
+    def toBase94(value: BigInt): java.lang.String =
       if (value == 0)
         s"${(value + 33).toChar}"
       else {
@@ -59,8 +59,8 @@ object ICFP {
         ans
       }
 
-    def fromBase94(digits: java.lang.String): Long =
-      digits.foldLeft(0L)((ans, digit) => ans * 94 + (digit.toInt - 33))
+    def fromBase94(digits: java.lang.String): BigInt =
+      digits.foldLeft(BigInt(0))((ans, digit) => ans * 94 + (digit.toInt - 33))
   }
 
   case class String(value: java.lang.String) extends ICFP.Atom {
@@ -75,7 +75,7 @@ object ICFP {
       str.map(ch => Order(ch.toInt - 33)).mkString
   }
 
-  case class Variable(value: Long) extends ICFP {
+  case class Variable(value: Int) extends ICFP {
     def isAtom: scala.Boolean =
       false
   }
@@ -114,7 +114,7 @@ object ICFP {
       case object Not extends ICFP.Operator.Unary
       case object StringToInt extends ICFP.Operator.Unary
       case object IntToString extends ICFP.Operator.Unary
-      case class LambdaAbstraction(variableNumber: Long) extends ICFP.Operator.Unary
+      case class LambdaAbstraction(variableNumber: Int) extends ICFP.Operator.Unary
     }
 
     sealed trait Binary extends Operator
