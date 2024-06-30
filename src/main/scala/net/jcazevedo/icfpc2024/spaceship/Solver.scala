@@ -1,7 +1,5 @@
 package net.jcazevedo.icfpc2024.spaceship
 
-import scala.collection.mutable
-
 object Solver {
   final val Steps: Map[String, (Int, Int)] = Map(
     "1" -> (-1, -1),
