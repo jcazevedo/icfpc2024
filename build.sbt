@@ -20,6 +20,9 @@ lazy val icfpc2024 = (project in file("."))
       "-Ywarn-numeric-widen",
       "-Ywarn-unused:imports"
     ),
+    javaOptions ++= Seq(
+      "-Xss10m"
+    ),
     libraryDependencies ++= Seq(
       FastParse,
       JLine,
