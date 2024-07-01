@@ -232,9 +232,8 @@ object Interpreter extends LazyLogging {
           ticks(t) = curr
       }
 
-      logger.info(s"[t=$t, x=${maxX - minX + 1}, y=${maxY - minY + 1}]\n${curr.asString}")
-
       steps += 1
+      logger.info(s"[t=$t, x=${maxX - minX + 1}, y=${maxY - minY + 1}, steps=$steps]\n${curr.asString}")
 
       maxSteps.foreach(maxS => if (steps >= maxS) return Reduction.Result(None))
     }
