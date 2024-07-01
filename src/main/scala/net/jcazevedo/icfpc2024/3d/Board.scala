@@ -27,9 +27,9 @@ case class Board(values: Map[(Int, Int), Cell]) {
         (minX to maxX)
           .map(x =>
             values.get((x, y)) match {
-              case None                       => pad(".", columnLengths(x - minX))
-              case Some(Cell.Integer(value))  => pad(value.toString, columnLengths(x - minX))
-              case Some(Cell.Operator(value)) => pad(s"$value", columnLengths(x - minX))
+              case None                       => pad(".", x - minX)
+              case Some(Cell.Integer(value))  => pad(value.toString, x - minX)
+              case Some(Cell.Operator(value)) => pad(s"$value", x - minX)
             }
           )
           .mkString(" ")
