@@ -1,38 +1,39 @@
 package net.jcazevedo.icfpc2024.`3d`
 
-case class Board(cells: Vector[Vector[Cell]], t: Int) {
+case class Board(values: Map[(Int, Int), Cell]) {
+  lazy val minX = values.keySet.map(_._1).min
+  lazy val maxX = values.keySet.map(_._1).max
+  lazy val minY = values.keySet.map(_._2).min
+  lazy val maxY = values.keySet.map(_._2).max
+
   def asString: String = {
     val columnLengths: Vector[Int] = {
-      val columns = cells(0).length
-      val columnLengths = Array.fill(columns)(0)
-      cells.foreach(line =>
-        line.zipWithIndex.foreach({
-          case (Cell.Empty, col) =>
-            columnLengths(col) = math.max(columnLengths(col), 1)
-          case (Cell.Integer(value), col) =>
-            columnLengths(col) = math.max(columnLengths(col), value.toString().length())
-          case (Cell.Operator(value), col) =>
-            columnLengths(col) = math.max(columnLengths(col), 1)
-        })
-      )
+      val columns = maxX - minX + 1
+      val columnLengths = Array.fill(columns)(1)
+      values.foreach({
+        case ((x, y), Cell.Integer(value)) =>
+          columnLengths(x - minX) = math.max(columnLengths(x - minX), value.toString.length())
+        case ((x, y), Cell.Operator(_)) =>
+          columnLengths(x - minX) = math.max(columnLengths(x - minX), 1)
+      })
       columnLengths.toVector
     }
 
     def pad(value: String, col: Int): String =
       value.reverse.padTo(columnLengths(col), ' ').reverse
 
-    val cellStr = cells
-      .map(line =>
-        line.zipWithIndex
-          .map({
-            case (Cell.Empty, col)           => pad(".", col)
-            case (Cell.Integer(value), col)  => pad(value.toString, col)
-            case (Cell.Operator(value), col) => pad(s"$value", col)
-          })
+    (minY to maxY)
+      .map(y =>
+        (minX to maxX)
+          .map(x =>
+            values.get((x, y)) match {
+              case None                       => pad(".", columnLengths(x - minX))
+              case Some(Cell.Integer(value))  => pad(value.toString, columnLengths(x - minX))
+              case Some(Cell.Operator(value)) => pad(s"$value", columnLengths(x - minX))
+            }
+          )
           .mkString(" ")
       )
       .mkString("\n")
-
-    s"[t=$t, x=?, y=?]\n$cellStr\n"
   }
 }
