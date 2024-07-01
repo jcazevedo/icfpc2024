@@ -12,7 +12,7 @@ object Interpreter extends LazyLogging {
       grid.zipWithIndex
         .flatMap({ case (line, y) =>
           line
-            .split(" ")
+            .split("\\s+")
             .zipWithIndex
             .flatMap({ case (ch, x) =>
               ch match {
