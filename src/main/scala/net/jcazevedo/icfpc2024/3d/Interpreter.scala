@@ -184,7 +184,7 @@ object Interpreter extends LazyLogging {
     SingleReduction.Next(Board(nextMap.toMap))
   }
 
-  def reduce(board: Board, inputA: Option[BigInt], inputB: Option[BigInt]): Reduction = {
+  def reduce(board: Board, inputA: Option[BigInt], inputB: Option[BigInt], maxSteps: Option[Int] = None): Reduction = {
     val start = board.copy(board.values.map({
       case (coords, Cell.Operator('A')) =>
         coords -> inputA.fold[Cell](Cell.Operator('A'))(Cell.Integer)
@@ -204,6 +204,8 @@ object Interpreter extends LazyLogging {
     ticks(t) = curr
 
     logger.info(s"[t=$t, x=${maxX - minX + 1}, y=${maxY - minY + 1}]\n${curr.asString}")
+
+    var steps = 0
 
     while (true) {
       reduceOne(curr) match {
@@ -231,6 +233,10 @@ object Interpreter extends LazyLogging {
       }
 
       logger.info(s"[t=$t, x=${maxX - minX + 1}, y=${maxY - minY + 1}]\n${curr.asString}")
+
+      steps += 1
+
+      maxSteps.foreach(maxS => if (steps >= maxS) return Reduction.Result(None))
     }
 
     Reduction.Result(None)
